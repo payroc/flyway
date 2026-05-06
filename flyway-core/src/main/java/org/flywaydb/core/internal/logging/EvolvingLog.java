@@ -1,0 +1,81 @@
+/*-
+ * ========================LICENSE_START=================================
+ * flyway-core
+ * ========================================================================
+ * Copyright (C) 2010 - 2026 Red Gate Software Ltd
+ * ========================================================================
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =========================LICENSE_END==================================
+ */
+package org.flywaydb.core.internal.logging;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Synchronized;
+import org.flywaydb.core.api.logging.Log;
+import org.flywaydb.core.api.logging.LogFactory;
+import org.flywaydb.core.internal.logging.buffered.BufferedLog;
+
+@AllArgsConstructor
+public class EvolvingLog implements Log {
+    @Getter
+    private Log log;
+    private final Class<?> clazz;
+
+    @Synchronized
+    private void updateLog() {
+        final Log newLog = ((EvolvingLog) LogFactory.getLog(clazz)).getLog();
+
+        if (log instanceof BufferedLog && !(newLog instanceof BufferedLog)) {
+            ((BufferedLog) log).flush(newLog);
+        }
+
+        log = newLog;
+    }
+
+    @Override
+    public void debug(String message) {
+        updateLog();
+        log.debug(message);
+    }
+
+    @Override
+    public void info(String message) {
+        updateLog();
+        log.info(message);
+    }
+
+    @Override
+    public void warn(String message) {
+        updateLog();
+        log.warn(message);
+    }
+
+    @Override
+    public void error(String message) {
+        updateLog();
+        log.error(message);
+    }
+
+    @Override
+    public void error(String message, Exception e) {
+        updateLog();
+        log.error(message, e);
+    }
+
+    @Override
+    public void notice(String message) {
+        updateLog();
+        log.notice(message);
+    }
+}

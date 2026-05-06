@@ -1,0 +1,40 @@
+Clickhouse
+Databricks
+Informix
+MariaDB
+Percona
+Sybase
+Testcontainers
+Timeplus
+Cubrid
+Couchbase
+
+# Cassandra
+keyspace
+
+# Firebird
+isql
+# MySQL
+mysqldump
+
+# MongoDB
+Mongosh
+
+# Oracle
+tablespaces?
+[Dd]iagnosability
+
+# Postgres
+pg_dump
+pgpass
+Postgres
+PSQL
+
+# SQL Server
+Babelfish
+Entra
+filegroups?
+tSQLt
+Sqlcmd
+SQLCop
+
