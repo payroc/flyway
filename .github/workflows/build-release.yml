@@ -21,8 +21,21 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Build and test
-        run: mvn -B verify -e -P-update-file-headers
+      - name: Build, test and assemble
+        id: build
+        run: |
+          mvn -B verify -e -P-update-file-headers,build-assemblies-no-jre
+          VERSION=$(mvn help:evaluate -q -DforceStdout -Dexpression=project.version)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          cp flyway-commandline/target/flyway-commandline-${VERSION}.tar.gz flyway-docker/
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg FLYWAY_VERSION=${{ steps.build.outputs.version }} \
+            -t payroc/flyway:${{ steps.build.outputs.version }} \
+            -f flyway-docker/dockerfiles/base/Dockerfile \
+            flyway-docker/
 
       - name: Authenticate with Cloudsmith (OIDC)
         uses: cloudsmith-io/cloudsmith-cli-action@v2
@@ -30,13 +43,19 @@ jobs:
           oidc-namespace: payroc
           oidc-service-slug: tools-ci-service
 
-      - name: Publish all modules to Cloudsmith
+      - name: Publish Docker image and CLI tarball to Cloudsmith
         run: |
-          VERSION=$(mvn help:evaluate -q -DforceStdout -Dexpression=project.version)
-          find . -maxdepth 3 -path "*/target/*-${VERSION}.pom" | while read pom; do
-            jar="${pom%.pom}.jar"
-            if [ -f "$jar" ]; then
-              echo "Pushing $jar"
-              cloudsmith push maven payroc/tools "$jar" --pom-file="$pom"
-            fi
-          done
+          VERSION=${{ steps.build.outputs.version }}
+
+          # Docker image
+          docker tag payroc/flyway:${VERSION} docker.cloudsmith.io/payroc/tools/payroc/flyway:${VERSION}
+          docker tag payroc/flyway:${VERSION} docker.cloudsmith.io/payroc/tools/payroc/flyway:latest
+          docker save docker.cloudsmith.io/payroc/tools/payroc/flyway:${VERSION} -o flyway-image.tar
+          cloudsmith push docker payroc/tools flyway-image.tar
+
+          # Raw CLI tarball (no-JRE, requires Java 17+ on host)
+          cloudsmith push raw payroc/tools \
+            flyway-docker/flyway-commandline-${VERSION}.tar.gz \
+            --name flyway-commandline \
+            --version ${VERSION} \
+            --summary "Flyway CLI with Payroc extensions (no bundled JRE)"
