@@ -2,12 +2,14 @@ package org.flywaydb.core.internal.command;
 
 import static org.flywaydb.core.internal.util.TelemetryUtils.getTelemetryManager;
 
+import java.util.Collections;
 import java.util.List;
 import org.flywaydb.core.FlywayExecutor;
 import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.configuration.Configuration;
 import org.flywaydb.core.api.output.UndoResult;
 import org.flywaydb.core.extensibility.CommandExtension;
+import org.flywaydb.core.internal.util.Pair;
 
 public class UndoCommandExtension implements CommandExtension<UndoResult> {
 
@@ -28,6 +30,11 @@ public class UndoCommandExtension implements CommandExtension<UndoResult> {
                         new DbUndo(db, history, defaultSchema, resolver, config, callbacks).undo(),
                 true,
                 getTelemetryManager(config));
+    }
+
+    @Override
+    public List<Pair<String, String>> getUsage() {
+        return Collections.singletonList(Pair.of("undo", "Undoes the most recently applied versioned migration"));
     }
 
     @Override
